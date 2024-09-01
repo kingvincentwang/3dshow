@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>認識立體圖形</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 15px;
+        }
+        td {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            text-align: center;
+            vertical-align: top;
+            transition: transform 0.3s ease;
+        }
+        td:hover {
+            transform: translateY(-5px);
+        }
+        .shape-container {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 10px;
+            cursor: move;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .shape-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .shape-name {
+            font-weight: bold;
+            margin: 10px 0;
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        #controls button {
+            flex: 1 1 auto;
+        }
+        #autoRotateBtn {
+            background-color: #2196F3;
+        }
+        #autoRotateBtn:hover {
+            background-color: #0b7dda;
+        }
+		hr {
+			width: 100%;
+			border: 0;
+			height: 1px;
+			background: #333;
+			background-image: linear-gradient(to right, #ccc, #333, #ccc);
+			margin: 20px 0;
+		}
+    </style>
+</head>
+<body>
+<center><h1>認識立體圖形</h1></center>
+<hr>
+<div><font color="red"><b>備註：1.可使用滑鼠滾輪來放大或縮小。2.可使用滑鼠拖曳旋轉物體</b></font></div>
+<br>
+    <div class="container">
+        <table>
+            <tr>
+                <td>
+                    <div class="shape-container" id="cube"></div>
+                    <div class="shape-name">長方體</div>
+                    <button onclick="changeColor(0)">更換顏色</button>
+                </td>
+                <td>
+                    <div class="shape-container" id="cone"></div>
+                    <div class="shape-name">圓錐體</div>
+                    <button onclick="changeColor(1)">更換顏色</button>
+                </td>
+                <td>
+                    <div class="shape-container" id="triangularPyramid"></div>
+                    <div class="shape-name">三角錐體</div>
+                    <button onclick="changeColor(2)">更換顏色</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="shape-container" id="squarePyramid"></div>
+                    <div class="shape-name">四角錐體</div>
+                    <button onclick="changeColor(3)">更換顏色</button>
+                </td>
+                <td>
+                    <div class="shape-container" id="cylinder"></div>
+                    <div class="shape-name">圓柱體</div>
+                    <button onclick="changeColor(4)">更換顏色</button>
+                </td>
+                <td>
+                    <div class="shape-container" id="sphere"></div>
+                    <div class="shape-name">球體</div>
+                    <button onclick="changeColor(5)">更換顏色</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="controls">
+        <button onclick="changeAllColors()">更換所有顏色</button>
+        <button onclick="resetAllRotations()">重置所有旋轉</button>
+        <button onclick="toggleAutoRotation()" id="autoRotateBtn">開始自動旋轉</button>
+        <button onclick="resetAllZoom()">重置所有縮放</button>
+    </div>
+	<hr>
+	<center><h3>設計者：Vincentwang</h3></center>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scenes = [], cameras = [], renderers = [];
+        let shapes = [];
+        let colors = Array(6).fill(0x00ff00); // 所有形狀初始為綠色
+        let isDragging = Array(6).fill(false);
+        let previousMousePosition = Array(6).fill({ x: 0, y: 0 });
+        let isAutoRotating = false;
+
+        function init() {
+            const shapeTypes = ['cube', 'cone', 'triangularPyramid', 'squarePyramid', 'cylinder', 'sphere'];
+            
+            shapeTypes.forEach((type, index) => {
+                const container = document.getElementById(type);
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                
+                renderer.setSize(200, 200);
+                container.appendChild(renderer.domElement);
+                
+                camera.position.z = 5;
+                
+                scenes.push(scene);
+                cameras.push(camera);
+                renderers.push(renderer);
+                
+                createShape(type, scene, index);
+                
+                // 添加光源
+                const light1 = new THREE.PointLight(0xffffff, 1, 100);
+                light1.position.set(0, 0, 10);
+                const light2 = new THREE.PointLight(0xffffff, 0.8, 100);
+                light2.position.set(10, 10, -10);
+                scene.add(light1, light2);
+
+                // 添加事件監聽器
+                container.addEventListener('mousedown', (event) => onMouseDown(event, index));
+                container.addEventListener('mousemove', (event) => onMouseMove(event, index));
+                container.addEventListener('mouseup', () => onMouseUp(index));
+                container.addEventListener('mouseleave', () => onMouseUp(index));
+                container.addEventListener('wheel', (event) => onWheel(event, index));
+            });
+
+            animate();
+        }
+
+        function createShape(type, scene, index) {
+            let geometry;
+            switch(type) {
+                case 'cube':
+                    geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                    break;
+                case 'cone':
+                    geometry = new THREE.ConeGeometry(0.75, 1.5, 32);
+                    break;
+                case 'triangularPyramid':
+                    geometry = new THREE.ConeGeometry(0.75, 1.5, 3);
+                    break;
+                case 'squarePyramid':
+                    geometry = new THREE.ConeGeometry(0.75, 1.5, 4);
+                    break;
+                case 'cylinder':
+                    geometry = new THREE.CylinderGeometry(0.75, 0.75, 1.5, 32);
+                    break;
+                case 'sphere':
+                    geometry = new THREE.SphereGeometry(0.75, 32, 32);
+                    break;
+            }
+
+            const material = new THREE.MeshPhongMaterial({ color: colors[index] });
+            const shape = new THREE.Mesh(geometry, material);
+            scene.add(shape);
+
+            // 添加wireframe
+            const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            const edges = new THREE.EdgesGeometry(geometry);
+            const wireframe = new THREE.LineSegments(edges, wireframeMaterial);
+            shape.add(wireframe);
+
+            shapes.push(shape);
+        }
+
+        function onMouseDown(event, index) {
+            isDragging[index] = true;
+            previousMousePosition[index] = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        }
+
+        function onMouseMove(event, index) {
+            if (!isDragging[index]) return;
+
+            const deltaMove = {
+                x: event.clientX - previousMousePosition[index].x,
+                y: event.clientY - previousMousePosition[index].y
+            };
+
+            shapes[index].rotation.y += deltaMove.x * 0.01;
+            shapes[index].rotation.x += deltaMove.y * 0.01;
+
+            previousMousePosition[index] = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        }
+
+        function onMouseUp(index) {
+            isDragging[index] = false;
+        }
+
+        function onWheel(event, index) {
+            event.preventDefault();
+            
+            const zoomSpeed = 0.001;
+            const delta = event.deltaY;
+            
+            cameras[index].position.z += delta * zoomSpeed;
+            
+            // 限制縮放範圍
+            cameras[index].position.z = Math.max(2, Math.min(cameras[index].position.z, 10));
+        }
+
+        function changeColor(index) {
+            colors[index] = Math.random() * 0xffffff;
+            shapes[index].material.color.setHex(colors[index]);
+        }
+
+        function changeAllColors() {
+            shapes.forEach((shape, index) => {
+                colors[index] = Math.random() * 0xffffff;
+                shape.material.color.setHex(colors[index]);
+            });
+        }
+
+        function resetAllRotations() {
+            shapes.forEach(shape => {
+                shape.rotation.set(0, 0, 0);
+            });
+        }
+
+        function resetAllZoom() {
+            cameras.forEach(camera => {
+                camera.position.z = 5;
+            });
+        }
+
+        function toggleAutoRotation() {
+            isAutoRotating = !isAutoRotating;
+            const btn = document.getElementById('autoRotateBtn');
+            btn.textContent = isAutoRotating ? '停止自動旋轉' : '開始自動旋轉';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isAutoRotating) {
+                shapes.forEach(shape => {
+                    shape.rotation.x += 0.01;
+                    shape.rotation.y += 0.01;
+                });
+            }
+
+            scenes.forEach((scene, index) => {
+                renderers[index].render(scene, cameras[index]);
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

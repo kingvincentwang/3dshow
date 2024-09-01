@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分數圖形生成器（圓形或長方形）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, select {
+            margin: 5px;
+            padding: 5px;
+        }
+        button {
+            margin: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #fractionDisplay {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>分數圖形生成器</h2>
+		<hr><br>
+        <input type="number" id="numerator" placeholder="分子" min="0">
+        <input type="number" id="denominator" placeholder="分母" min="1">
+        <select id="shapeType">
+            <option value="circle">圓形</option>
+            <option value="rectangle">長方形</option>
+        </select>
+        <button onclick="generateChart()">生成圖表</button>
+        <div id="fractionDisplay"></div>
+        <canvas id="chart" width="300" height="300"></canvas>
+    </div>
+
+    <script>
+        function generateChart() {
+            const numerator = parseInt(document.getElementById('numerator').value);
+            const denominator = parseInt(document.getElementById('denominator').value);
+            const shapeType = document.getElementById('shapeType').value;
+
+            if (isNaN(numerator) || isNaN(denominator) || denominator === 0) {
+                alert('請輸入有效的分子和分母');
+                return;
+            }
+
+            const fraction = numerator / denominator;
+            const decimalForm = fraction.toFixed(3);
+            const percentageForm = (fraction * 100).toFixed(1) + '%';
+            document.getElementById('fractionDisplay').innerHTML = `
+                ${numerator} / ${denominator} = ${decimalForm} = ${percentageForm}
+            `;
+
+            const canvas = document.getElementById('chart');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (shapeType === 'circle') {
+                drawCircleChart(ctx, canvas.width, canvas.height, fraction, denominator);
+            } else {
+                drawRectangleChart(ctx, canvas.width, canvas.height, fraction, denominator);
+            }
+        }
+
+        function drawCircleChart(ctx, width, height, fraction, denominator) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+
+            // 繪製整個圓
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 填充分數部分
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, -Math.PI / 2, (fraction * 2 * Math.PI) - Math.PI / 2, false);
+            ctx.closePath();
+            ctx.fillStyle = '#4285F4';  // Google Blue
+            ctx.fill();
+
+            // 繪製分割線
+            for (let i = 0; i < denominator; i++) {
+                const angle = (i / denominator) * 2 * Math.PI - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + radius * Math.cos(angle),
+                    centerY + radius * Math.sin(angle)
+                );
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function drawRectangleChart(ctx, width, height, fraction, denominator) {
+            const rectWidth = width - 20;
+            const rectHeight = height - 20;
+
+            // 繪製整個長方形
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, rectWidth, rectHeight);
+
+            // 填充分數部分
+            ctx.fillStyle = '#4285F4';  // Google Blue
+            ctx.fillRect(10, 10, rectWidth * fraction, rectHeight);
+
+            // 繪製分割線
+            for (let i = 1; i < denominator; i++) {
+                const x = 10 + (rectWidth / denominator) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 10);
+                ctx.lineTo(x, height - 10);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>異分母通分相加圖形生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 10;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transform: scale(0.8);
+            transform-origin: center;
+        }
+        .fraction-input {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .fraction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+        }
+        input {
+            width: 60px;
+            height: 40px;
+            text-align: center;
+            font-size: 24px;
+        }
+        .fraction-line {
+            width: 100%;
+            border-top: 2px solid black;
+            margin: 5px 0;
+        }
+        .operator {
+            font-size: 36px;
+            margin: 0 20px;
+        }
+        .circle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .fraction-circle {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            margin: 10px;
+        }
+        .fraction-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 18px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #commonFractions {
+            margin-top: 20px;
+            text-align: center;
+			font-size: 36px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+	<center><h1>異分母通分相加圖形生成器</h1></center>
+	<hr><br>
+        <div class="fraction-input">
+            <div class="fraction">
+                <input type="number" id="num1" value="2" min="0">
+                <div class="fraction-line"></div>
+                <input type="number" id="den1" value="5" min="1">
+            </div>
+            <span class="operator">+</span>
+            <div class="fraction">
+                <input type="number" id="num2" value="5" min="0">
+                <div class="fraction-line"></div>
+                <input type="number" id="den2" value="7" min="1">
+            </div>
+            <span class="operator">=</span>
+            <div class="fraction">
+                <span id="resultNum">0</span>
+                <div class="fraction-line"></div>
+                <span id="resultDen">1</span>
+            </div>
+        </div>
+        <div class="circle-container" id="originalCircles"></div>
+        <button onclick="generateFractions()">生成異分母分數並通分</button>
+        <div id="commonFractions"></div>
+    </div>
+
+    <script>
+        function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+        }
+
+        function lcm(a, b) {
+            return (a * b) / gcd(a, b);
+        }
+
+        function drawFractionCircle(svg, numerator, denominator) {
+            const radius = 73;
+            const center = 75;
+
+            if (numerator === 0) {
+                // Empty circle for numerator 0
+                return;
+            }
+
+            if (numerator === denominator) {
+                // Full circle for numerator equal to denominator
+                const fullCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                fullCircle.setAttribute("cx", center);
+                fullCircle.setAttribute("cy", center);
+                fullCircle.setAttribute("r", radius);
+                fullCircle.setAttribute("fill", "#2196F3");
+                svg.appendChild(fullCircle);
+                return;
+            }
+
+            const angle = (numerator / denominator) * 360;
+            const radians = (angle - 90) * (Math.PI / 180);
+            const x = center + radius * Math.cos(radians);
+            const y = center + radius * Math.sin(radians);
+            const largeArcFlag = angle > 180 ? 1 : 0;
+
+            const pathData = `M ${center} ${center - radius} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x} ${y} L ${center} ${center}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathData);
+            path.setAttribute("fill", "#2196F3");
+            svg.appendChild(path);
+
+            // Draw division lines
+            for (let i = 1; i < denominator; i++) {
+                const lineAngle = (i / denominator) * 360 - 90;
+                const lineRadians = lineAngle * (Math.PI / 180);
+                const lineX = center + radius * Math.cos(lineRadians);
+                const lineY = center + radius * Math.sin(lineRadians);
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", center);
+                line.setAttribute("y1", center);
+                line.setAttribute("x2", lineX);
+                line.setAttribute("y2", lineY);
+                line.setAttribute("stroke", "#2196F3");
+                line.setAttribute("stroke-width", "1");
+                svg.appendChild(line);
+            }
+        }
+
+        function createCircle(numerator, denominator) {
+            const fractionCircle = document.createElement('div');
+            fractionCircle.className = 'fraction-circle';
+            
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", "150");
+            svg.setAttribute("height", "150");
+            svg.setAttribute("viewBox", "0 0 150 150");
+
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", "75");
+            circle.setAttribute("cy", "75");
+            circle.setAttribute("r", "73");
+            circle.setAttribute("fill", "none");
+            circle.setAttribute("stroke", "#2196F3");
+            circle.setAttribute("stroke-width", "2");
+            svg.appendChild(circle);
+
+            drawFractionCircle(svg, numerator, denominator);
+
+            fractionCircle.appendChild(svg);
+
+            const fractionText = document.createElement('div');
+            fractionText.className = 'fraction-text';
+            fractionText.textContent = `${numerator}/${denominator}`;
+            fractionCircle.appendChild(fractionText);
+
+            return fractionCircle;
+        }
+
+        function createOperator(text) {
+            const operator = document.createElement('div');
+            operator.className = 'operator';
+            operator.textContent = text;
+            return operator;
+        }
+
+        function updateCircles() {
+            const num1 = parseInt(document.getElementById('num1').value);
+            const den1 = parseInt(document.getElementById('den1').value);
+            const num2 = parseInt(document.getElementById('num2').value);
+            const den2 = parseInt(document.getElementById('den2').value);
+
+            const circleContainer = document.getElementById('originalCircles');
+            circleContainer.innerHTML = '';
+
+            circleContainer.appendChild(createCircle(num1, den1));
+            circleContainer.appendChild(createOperator('+'));
+            circleContainer.appendChild(createCircle(num2, den2));
+            circleContainer.appendChild(createOperator('='));
+
+            // Calculate and display the result
+            const resultNum = num1 * den2 + num2 * den1;
+            const resultDen = den1 * den2;
+            const gcdResult = gcd(resultNum, resultDen);
+            const simplifiedNum = resultNum / gcdResult;
+            const simplifiedDen = resultDen / gcdResult;
+
+            document.getElementById('resultNum').textContent = simplifiedNum;
+            document.getElementById('resultDen').textContent = simplifiedDen;
+
+            // Add result circle(s)
+            if (simplifiedNum >= simplifiedDen) {
+                const wholePart = Math.floor(simplifiedNum / simplifiedDen);
+                const remainder = simplifiedNum % simplifiedDen;
+
+                for (let i = 0; i < wholePart; i++) {
+                    circleContainer.appendChild(createCircle(1, 1));
+                }
+
+                if (remainder > 0) {
+                    circleContainer.appendChild(createCircle(remainder, simplifiedDen));
+                }
+            } else {
+                circleContainer.appendChild(createCircle(simplifiedNum, simplifiedDen));
+            }
+        }
+
+        function generateFractions() {
+            const den1 = Math.floor(Math.random() * 10) + 2; // 2 to 11
+            const den2 = Math.floor(Math.random() * 10) + 2; // 2 to 11
+            const num1 = Math.floor(Math.random() * (den1 - 1)) + 1; // 1 to den1-1
+            const num2 = Math.floor(Math.random() * (den2 - 1)) + 1; // 1 to den2-1
+
+            document.getElementById('num1').value = num1;
+            document.getElementById('den1').value = den1;
+            document.getElementById('num2').value = num2;
+            document.getElementById('den2').value = den2;
+
+            updateCircles();
+
+            const commonDen = lcm(den1, den2);
+            const commonNum1 = num1 * (commonDen / den1);
+            const commonNum2 = num2 * (commonDen / den2);
+
+            const commonFractionsDiv = document.getElementById('commonFractions');
+            commonFractionsDiv.innerHTML = '<h3>通分後的分數：</h3><div class="circle-container"></div>';
+            const commonCircleContainer = commonFractionsDiv.querySelector('.circle-container');
+            
+            commonCircleContainer.appendChild(createCircle(commonNum1, commonDen));
+            commonCircleContainer.appendChild(createOperator('+'));
+            commonCircleContainer.appendChild(createCircle(commonNum2, commonDen));
+
+            commonFractionsDiv.innerHTML += `<p>${commonNum1}/${commonDen} + ${commonNum2}/${commonDen}</p>`;
+        }
+
+        // Initial update
+        updateCircles();
+
+        // Add event listeners to inputs
+        ['num1', 'den1', 'num2', 'den2'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCircles);
+        });
+    </script>
+</body>
+</html>
